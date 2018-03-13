@@ -38,7 +38,7 @@ func (c *Cmd) Run(args []string) int {
 	log.Printf("Running server command: eos server %v", args)
 
 	router := mux.NewRouter()
-	router.HandleFunc("/v1/sys/health", c.healthHandler).Methods(http.MethodGet)
+	router.HandleFunc("/v1/sys/status", c.healthHandler).Methods(http.MethodGet)
 
 	log.Printf("Listening on: %s", c.addr)
 	log.Fatal(http.ListenAndServe(c.addr, router))

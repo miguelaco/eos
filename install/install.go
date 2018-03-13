@@ -1,47 +1,54 @@
 package install
 
 import (
-	"fmt"
-    "flag"
+	"log"
+	"time"
+	"math/rand"
 
 	"github.com/mitchellh/cli"
 )
 
 type Cmd struct {
 	ui cli.Ui
-
-    // flags
-    flags *flag.FlagSet
-    verbose bool
-    securize bool
-    principal string
 }
 
 func New(ui cli.Ui) *Cmd {
 	cmd := &Cmd{ui: ui}
-    cmd.init()
 	return cmd
 }
 
-func (c *Cmd) init() {
-    c.flags = flag.NewFlagSet("install", flag.ContinueOnError)
-    c.flags.BoolVar(&c.verbose, "v", false,
-        "Increase output info.")
-    c.flags.BoolVar(&c.securize, "securize", false,
-        "Securize cluster after install")
-    c.flags.StringVar(&c.principal, "principal", "root/admin",
-        "Principal to use when generating kerberos credentials")
-}
-
 func (c *Cmd) Run(args []string) int {
-    if err := c.flags.Parse(args); err != nil {
-        return 1
-    }
+	log.Printf("Running install command: eos install %v", args)
 
-    c.flags.VisitAll(func (flag *flag.Flag) { fmt.Printf("Visiting flag %v = %v\n", flag.Name, flag.Value) })
-	c.ui.Output(fmt.Sprintf("Running install command: eos install %v", args))
+	rand.Seed(time.Now().UnixNano())
+	start := make(chan int, 5)
+	done := make(chan int, 10)
+
+	for i := 0; i < 10; i++ {
+		go func(i int) {
+			start <- i
+			log.Printf("%d: Start\n", i)
+			c.install(i)
+			done <- i
+			<-start
+		}(i)
+	}
+
+
+	for i := 0; i < 10; i++ {
+		j := <- done
+		log.Printf("%d: Done\n", j)
+	}
+
+	log.Println("All done")
 
 	return 0
+}
+
+func (c * Cmd) install(id int) {
+	s := time.Duration(rand.Intn(9) + 1)
+	log.Printf("%d: Sleeping %d seconds\n", id, s)
+	time.Sleep(s * time.Second)
 }
 
 func (c *Cmd) Synopsis() string {

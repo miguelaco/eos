@@ -2,9 +2,11 @@ package status
 
 import (
 	"log"
-	"flag"
+	_flag "flag"
 	"net/http"
 	"io/ioutil"
+
+	"github.com/miguelaco/eos/flag"
 
 	"github.com/mitchellh/cli"
 )
@@ -13,6 +15,7 @@ type Cmd struct {
 	ui cli.Ui
 	flags *flag.FlagSet
 	addr string
+	help string
 }
 
 func New(ui cli.Ui) *Cmd {
@@ -22,8 +25,9 @@ func New(ui cli.Ui) *Cmd {
 }
 
 func (c *Cmd) init() {
-	c.flags = flag.NewFlagSet("server", flag.ContinueOnError)
+	c.flags = flag.NewFlagSet("server", _flag.ExitOnError)
 	c.flags.StringVar(&c.addr, "addr", "http://localhost:1234", "Sets the HTTP API address to dial")
+	c.help = c.flags.Help(help)
 }
 
 func (c *Cmd) Run(args []string) int {
@@ -61,7 +65,7 @@ func (c *Cmd) Synopsis() string {
 }
 
 func (c *Cmd) Help() string {
-	return help
+	return c.help
 }
 
 const synopsis = "Installs EOS with specified configuration"

@@ -31,9 +31,7 @@ func (c *Cmd) init() {
 }
 
 func (c *Cmd) Run(args []string) int {
-	if err := c.flags.Parse(args); err != nil {
-		log.Fatalf("Error parsing args: %e", err)
-	}
+	c.flags.Parse(args)
 
 	log.Printf("Running status command: eos status %v", args)
 
@@ -44,14 +42,14 @@ func (c *Cmd) Run(args []string) int {
 
 func (c * Cmd) status() {
 	url := c.addr + "/v1/sys/status"
-	
+
 	res, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	defer res.Body.Close()
-	
+
 	status, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Fatal(err)

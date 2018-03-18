@@ -4,6 +4,8 @@ import (
 	"flag"
 	"strings"
 	"bytes"
+	"io"
+	"fmt"
 
 	text "github.com/tonnerre/golang-text"
 )
@@ -14,7 +16,7 @@ type FlagSet struct {
 
 func NewFlagSet(name string, errorHandling flag.ErrorHandling) *FlagSet {
 	f := flag.NewFlagSet(name, errorHandling)
-	result := FlagSet(*f)
+	result := FlagSet{f}
 	return &result
 }
 
@@ -29,7 +31,7 @@ func (f FlagSet) Help(head string) string {
 	return strings.TrimRight(out.String(), "\n")
 }
 
-func helpFlag(w io.Writer, f *flag.Flag) string {
+func helpFlag(w io.Writer, f *flag.Flag) {
 	example, _ := flag.UnquoteUsage(f)
 	if example != "" {
 		fmt.Fprintf(w, "  -%s=<%s>\n", f.Name, example)
@@ -42,7 +44,7 @@ func helpFlag(w io.Writer, f *flag.Flag) string {
 }
 
 func wrapAtLength(s string, pad int) string {
-	wrapped := text.Wrap(s, maxLineLength-pad)
+	wrapped := text.Wrap(s, 120-pad)
 	lines := strings.Split(wrapped, "\n")
 	for i, line := range lines {
 		lines[i] = strings.Repeat(" ", pad) + line

@@ -14,8 +14,8 @@ type FlagSet struct {
 	*flag.FlagSet
 }
 
-func NewFlagSet(name string, errorHandling flag.ErrorHandling) *FlagSet {
-	f := flag.NewFlagSet(name, errorHandling)
+func NewFlagSet(name string) *FlagSet {
+	f := flag.NewFlagSet(name, flag.ExitOnError)
 	result := FlagSet{f}
 	return &result
 }

@@ -2,11 +2,10 @@ package server
 
 import (
 	"encoding/json"
-	"flag"
-	"fmt"
 	"log"
 	"net/http"
-	"strings"
+
+	"github.com/miguelaco/eos/flag"
 
 	"github.com/gorilla/mux"
 	"github.com/mitchellh/cli"
@@ -29,9 +28,9 @@ func New(ui cli.Ui) *Cmd {
 }
 
 func (c *Cmd) init() {
-	c.flags = flag.NewFlagSet("server", flag.ExitOnError)
+	c.flags = flag.NewFlagSet("server")
 	c.flags.StringVar(&c.addr, "addr", ":1234", "Sets the HTTP API address to listen on")
-	c.help = c.Usage()
+	c.help = c.flags.Help(help)
 }
 
 func (c *Cmd) Run(args []string) int {
@@ -54,30 +53,6 @@ func (c *Cmd) Synopsis() string {
 
 func (c *Cmd) Help() string {
 	return c.help
-}
-
-func (c *Cmd) Usage() string {
-	s := help + "\n" + "Options:\n"
-	c.flags.VisitAll(func(f *flag.Flag) {
-		s += fmt.Sprintf("  -%s", f.Name) // Two spaces before -; see next two comments.
-		name, usage := flag.UnquoteUsage(f)
-		if len(name) > 0 {
-			s += " " + name
-		}
-		// Boolean flags of one ASCII letter are so common we
-		// treat them specially, putting their usage on the same line.
-		if len(s) <= 4 { // space, space, '-', 'x'.
-			s += "\t"
-		} else {
-			// Four spaces before the tab triggers good alignment
-			// for both 4- and 8-space tab stops.
-			s += "\n    \t"
-		}
-		s += strings.Replace(usage, "\n", "\n    \t", -1)
-		s += fmt.Sprintf(" (default %q)", f.DefValue)
-	})
-
-	return s
 }
 
 func (c *Cmd) healthHandler(w http.ResponseWriter, r *http.Request) {

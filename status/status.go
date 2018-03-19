@@ -2,7 +2,6 @@ package status
 
 import (
 	"log"
-	_flag "flag"
 	"net/http"
 	"io/ioutil"
 
@@ -25,7 +24,7 @@ func New(ui cli.Ui) *Cmd {
 }
 
 func (c *Cmd) init() {
-	c.flags = flag.NewFlagSet("server", _flag.ExitOnError)
+	c.flags = flag.NewFlagSet("status")
 	c.flags.StringVar(&c.addr, "addr", "http://localhost:1234", "Sets the HTTP API address to dial")
 	c.help = c.flags.Help(help)
 }

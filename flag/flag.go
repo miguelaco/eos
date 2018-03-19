@@ -1,11 +1,11 @@
 package flag
 
 import (
-	"flag"
-	"strings"
 	"bytes"
-	"io"
+	"flag"
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/mitchellh/cli"
 	text "github.com/tonnerre/golang-text"

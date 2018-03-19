@@ -2,8 +2,8 @@ package install
 
 import (
 	"log"
-	"time"
 	"math/rand"
+	"time"
 
 	"github.com/mitchellh/cli"
 )
@@ -34,9 +34,8 @@ func (c *Cmd) Run(args []string) int {
 		}(i)
 	}
 
-
 	for i := 0; i < 10; i++ {
-		j := <- done
+		j := <-done
 		log.Printf("%d: Done\n", j)
 	}
 
@@ -45,7 +44,7 @@ func (c *Cmd) Run(args []string) int {
 	return 0
 }
 
-func (c * Cmd) install(id int) {
+func (c *Cmd) install(id int) {
 	s := time.Duration(rand.Intn(9) + 1)
 	log.Printf("%d: Sleeping %d seconds\n", id, s)
 	time.Sleep(s * time.Second)

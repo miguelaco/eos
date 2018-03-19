@@ -1,9 +1,9 @@
 package status
 
 import (
+	"io/ioutil"
 	"log"
 	"net/http"
-	"io/ioutil"
 
 	"github.com/miguelaco/eos/flag"
 
@@ -11,10 +11,10 @@ import (
 )
 
 type Cmd struct {
-	ui cli.Ui
+	ui    cli.Ui
 	flags *flag.FlagSet
-	addr string
-	help string
+	addr  string
+	help  string
 }
 
 func New(ui cli.Ui) *Cmd {
@@ -39,7 +39,7 @@ func (c *Cmd) Run(args []string) int {
 	return 0
 }
 
-func (c * Cmd) status() {
+func (c *Cmd) status() {
 	url := c.addr + "/v1/sys/status"
 
 	res, err := http.Get(url)

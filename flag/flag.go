@@ -7,16 +7,20 @@ import (
 	"io"
 	"fmt"
 
+	"github.com/mitchellh/cli"
 	text "github.com/tonnerre/golang-text"
 )
 
 type FlagSet struct {
 	*flag.FlagSet
+	ui cli.Ui
 }
 
-func NewFlagSet(name string) *FlagSet {
+func NewFlagSet(name string, ui cli.Ui) *FlagSet {
 	f := flag.NewFlagSet(name, flag.ExitOnError)
-	result := FlagSet{f}
+	result := FlagSet{f, ui}
+	result.Usage = result.customUsage
+
 	return &result
 }
 
@@ -32,15 +36,27 @@ func (f FlagSet) Help(head string) string {
 	return strings.TrimRight(out.String(), "\n")
 }
 
+func (f FlagSet) customUsage() {
+	out := new(bytes.Buffer)
+	fmt.Fprintf(out, "Usage of %s:\n", f.Name())
+
+	f.VisitAll(func(f *flag.Flag) {
+		helpFlag(out, f)
+	})
+
+	s := strings.TrimRight(out.String(), "\n")
+	f.ui.Error(s)
+}
+
 func helpFlag(w io.Writer, f *flag.Flag) {
-	example, _ := flag.UnquoteUsage(f)
+	example, usage := flag.UnquoteUsage(f)
 	if example != "" {
 		fmt.Fprintf(w, "  -%s=<%s>\n", f.Name, example)
 	} else {
 		fmt.Fprintf(w, "  -%s\n", f.Name)
 	}
 
-	indented := wrapAtLength(f.Usage, 8)
+	indented := wrapAtLength(usage, 8)
 	fmt.Fprintf(w, "%s\n\n", indented)
 }
 

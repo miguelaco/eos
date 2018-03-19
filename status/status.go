@@ -24,8 +24,8 @@ func New(ui cli.Ui) *Cmd {
 }
 
 func (c *Cmd) init() {
-	c.flags = flag.NewFlagSet("status")
-	c.flags.StringVar(&c.addr, "addr", "http://localhost:1234", "Sets the HTTP API address to dial")
+	c.flags = flag.NewFlagSet("status", c.ui)
+	c.flags.StringVar(&c.addr, "addr", "http://localhost:1234", "Sets the HTTP API `url` to dial to")
 	c.help = c.flags.Help(help)
 }
 

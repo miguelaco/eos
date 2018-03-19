@@ -23,6 +23,7 @@ func NewFlagSet(name string, errorHandling flag.ErrorHandling) *FlagSet {
 func (f FlagSet) Help(head string) string {
 	out := new(bytes.Buffer)
 	out.WriteString(strings.TrimSpace(head))
+	out.WriteString("\n\nOptions:\n")
 
 	f.VisitAll(func(f *flag.Flag) {
 		helpFlag(out, f)
@@ -39,7 +40,7 @@ func helpFlag(w io.Writer, f *flag.Flag) {
 		fmt.Fprintf(w, "  -%s\n", f.Name)
 	}
 
-	indented := wrapAtLength(f.Usage, 5)
+	indented := wrapAtLength(f.Usage, 8)
 	fmt.Fprintf(w, "%s\n\n", indented)
 }
 

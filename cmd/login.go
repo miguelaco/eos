@@ -1,4 +1,4 @@
-package login
+package cmd
 
 import (
 	"errors"
@@ -9,9 +9,9 @@ import (
 	"net/url"
 	"regexp"
 
-	"github.com/miguelaco/eos/flag"
-
-	"github.com/mitchellh/cli"
+	"github.com/spf13/cobra"
+    "github.com/spf13/viper"
+    jww "github.com/spf13/jwalterweatherman"
 )
 
 type LogRedirects struct {
@@ -51,53 +51,56 @@ func (lc *LoginContext) Form() (form url.Values) {
 
 const authCookieName = "dcos-acs-auth-cookie"
 
-type Cmd struct {
-	ui       cli.Ui
-	flags    *flag.FlagSet
+
+type LoginCmd struct {
 	client   *http.Client
 	addr     string
 	user     string
 	password string
-	help     string
+	*cobra.Command
 }
 
-func New(ui cli.Ui) *Cmd {
-	cmd := &Cmd{ui: ui}
-	cmd.init()
-	return cmd
-}
+func newLoginCmd() *cobra.Command {
+	lc := LoginCmd{}
 
-func (c *Cmd) init() {
-	c.flags = flag.NewFlagSet("login", c.ui)
-	c.flags.StringVar(&c.addr, "addr", "http://mycluster.example.com", "Cluster HTTP address")
-	c.flags.StringVar(&c.user, "user", "admin", "Username")
-	c.flags.StringVar(&c.password, "password", "", "Password")
-	c.help = c.flags.Help(help)
-
-	cookieJar, _ := cookiejar.New(nil)
-	c.client = &http.Client{
-		Jar:       cookieJar,
-		Transport: LogRedirects{},
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 10 {
-				return errors.New("stopped after 10 redirects")
+	lc.Command = &cobra.Command{
+		Use:   "login",
+		Short: "Perform login to EOS cluster.",
+		Run: func (cmd *cobra.Command, args []string) {
+			cookieJar, _ := cookiejar.New(nil)
+			lc.client = &http.Client{
+				Jar:       cookieJar,
+				Transport: LogRedirects{},
+				CheckRedirect: func(req *http.Request, via []*http.Request) error {
+					if len(via) >= 10 {
+						return errors.New("stopped after 10 redirects")
+					}
+					req.Header.Set("Referer", lc.addr)
+					return nil
+				},
 			}
-			req.Header.Set("Referer", c.addr)
-			return nil
+
+			lc.login()
 		},
 	}
+
+	lc.Command.Flags().StringVarP(&lc.addr, "addr", "a", "", "Cluster url")
+	lc.Command.Flags().StringVarP(&lc.user, "user", "u", "admin", "Username you want to use")
+	lc.Command.Flags().StringVarP(&lc.password, "password", "p", "", "Password for the specified user")
+
+//	lc.Command.MarkFlagRequired("addr")
+
+	viper.BindPFlag("addr", lc.Command.Flags().Lookup("addr"))
+
+	return lc.Command
 }
 
-func (c *Cmd) Run(args []string) int {
-	c.flags.Parse(args)
+func (c *LoginCmd) login() {
+	jww.SetLogThreshold(jww.LevelTrace)
+    jww.SetStdoutThreshold(jww.LevelInfo)
 
 	log.Printf("Login to %v as %v", c.addr, c.user)
-	c.login()
 
-	return 0
-}
-
-func (c *Cmd) login() {
 	lc, err := c.getLoginContext()
 	if err != nil {
 		log.Fatal(err)
@@ -110,10 +113,24 @@ func (c *Cmd) login() {
 		return
 	}
 
+	viper.Set("token", token)
+
+	log.Println(viper.AllKeys())
+	log.Println(viper.Get("token"))
+	log.Println(viper.Get("addr"))
+
+
+	err = viper.WriteConfigAs("/home/majimenez/.eos/config.yml")
+
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
 	log.Println(authCookieName, token)
 }
 
-func (c *Cmd) getLoginContext() (lc LoginContext, err error) {
+func (c *LoginCmd) getLoginContext() (lc LoginContext, err error) {
 	lc = LoginContext{}
 
 	addr := c.addr + "/login"
@@ -145,7 +162,7 @@ func (c *Cmd) getLoginContext() (lc LoginContext, err error) {
 	return
 }
 
-func (c *Cmd) getAction(res *http.Response, formAction string) string {
+func (c *LoginCmd) getAction(res *http.Response, formAction string) string {
 	actionURL, _ := url.Parse(formAction)
 
 	if !actionURL.IsAbs() {
@@ -156,7 +173,7 @@ func (c *Cmd) getAction(res *http.Response, formAction string) string {
 	return actionURL.String()
 }
 
-func (c *Cmd) getAuthToken(lc LoginContext) (string, error) {
+func (c *LoginCmd) getAuthToken(lc LoginContext) (string, error) {
 	form := lc.Form()
 	form.Add("username", c.user)
 	form.Add("password", c.password)
@@ -170,7 +187,7 @@ func (c *Cmd) getAuthToken(lc LoginContext) (string, error) {
 	return c.getCookie(authCookieName)
 }
 
-func (c *Cmd) getCookie(name string) (string, error) {
+func (c *LoginCmd) getCookie(name string) (string, error) {
 	rootUrl, _ := url.Parse(c.addr)
 
 	for _, cookie := range c.client.Jar.Cookies(rootUrl) {
@@ -181,17 +198,3 @@ func (c *Cmd) getCookie(name string) (string, error) {
 
 	return "", errors.New("Cookie " + name + " not found")
 }
-
-func (c *Cmd) Synopsis() string {
-	return synopsis
-}
-
-func (c *Cmd) Help() string {
-	return c.help
-}
-
-const synopsis = "Login to EOS cluster"
-const help = `
-Usage: eos login [options]
-  Login to EOS cluster.
-`

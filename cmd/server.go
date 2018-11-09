@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"log"
-	"io"
-	"net/http"
 	"encoding/json"
+	"io"
+	"log"
+	"net/http"
 
-	"github.com/spf13/cobra"
 	"github.com/gorilla/mux"
+	"github.com/spf13/cobra"
 )
 
 type ServerCmd struct {
@@ -21,7 +21,7 @@ func newServerCmd() *cobra.Command {
 	sc.Command = &cobra.Command{
 		Use:   "server",
 		Short: "Start test server",
-		Run: func (cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			router := mux.NewRouter()
 			router.HandleFunc("/v1/sys/status", sc.healthHandler).Methods(http.MethodGet)
 			router.HandleFunc("/login", sc.loginGetHandler).Methods(http.MethodGet)

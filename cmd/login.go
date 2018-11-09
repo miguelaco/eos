@@ -10,7 +10,7 @@ import (
 	"regexp"
 
 	"github.com/spf13/cobra"
-    "github.com/spf13/viper"
+	"github.com/spf13/viper"
 )
 
 type LogRedirects struct {
@@ -50,7 +50,6 @@ func (lc *LoginContext) Form() (form url.Values) {
 
 const authCookieName = "dcos-acs-auth-cookie"
 
-
 type LoginCmd struct {
 	client   *http.Client
 	addr     string
@@ -65,7 +64,7 @@ func newLoginCmd() *cobra.Command {
 	lc.Command = &cobra.Command{
 		Use:   "login",
 		Short: "Perform login to EOS cluster.",
-		Run: func (cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			lc.addr = viper.GetString("addr")
 			lc.user = viper.GetString("user")
 
@@ -89,7 +88,7 @@ func newLoginCmd() *cobra.Command {
 	lc.Command.Flags().StringP("addr", "a", "", "Cluster url")
 	lc.Command.Flags().StringP("user", "u", "admin", "Username you want to use")
 
-//	lc.Command.MarkFlagRequired("addr")
+	//	lc.Command.MarkFlagRequired("addr")
 
 	viper.BindPFlag("addr", lc.Command.Flags().Lookup("addr"))
 	viper.BindPFlag("user", lc.Command.Flags().Lookup("user"))

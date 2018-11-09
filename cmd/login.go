@@ -11,7 +11,6 @@ import (
 
 	"github.com/spf13/cobra"
     "github.com/spf13/viper"
-    jww "github.com/spf13/jwalterweatherman"
 )
 
 type LogRedirects struct {
@@ -67,6 +66,9 @@ func newLoginCmd() *cobra.Command {
 		Use:   "login",
 		Short: "Perform login to EOS cluster.",
 		Run: func (cmd *cobra.Command, args []string) {
+			lc.addr = viper.GetString("addr")
+			lc.user = viper.GetString("user")
+
 			cookieJar, _ := cookiejar.New(nil)
 			lc.client = &http.Client{
 				Jar:       cookieJar,
@@ -84,21 +86,18 @@ func newLoginCmd() *cobra.Command {
 		},
 	}
 
-	lc.Command.Flags().StringVarP(&lc.addr, "addr", "a", "", "Cluster url")
-	lc.Command.Flags().StringVarP(&lc.user, "user", "u", "admin", "Username you want to use")
-	lc.Command.Flags().StringVarP(&lc.password, "password", "p", "", "Password for the specified user")
+	lc.Command.Flags().StringP("addr", "a", "", "Cluster url")
+	lc.Command.Flags().StringP("user", "u", "admin", "Username you want to use")
 
 //	lc.Command.MarkFlagRequired("addr")
 
 	viper.BindPFlag("addr", lc.Command.Flags().Lookup("addr"))
+	viper.BindPFlag("user", lc.Command.Flags().Lookup("user"))
 
 	return lc.Command
 }
 
 func (c *LoginCmd) login() {
-	jww.SetLogThreshold(jww.LevelTrace)
-    jww.SetStdoutThreshold(jww.LevelInfo)
-
 	log.Printf("Login to %v as %v", c.addr, c.user)
 
 	lc, err := c.getLoginContext()
@@ -115,19 +114,12 @@ func (c *LoginCmd) login() {
 
 	viper.Set("token", token)
 
-	log.Println(viper.AllKeys())
-	log.Println(viper.Get("token"))
-	log.Println(viper.Get("addr"))
-
-
-	err = viper.WriteConfigAs("/home/majimenez/.eos/config.yml")
-
-	if err != nil {
+	if err = viper.WriteConfig(); err != nil {
 		log.Fatal(err)
 		return
 	}
 
-	log.Println(authCookieName, token)
+	log.Println("Login successful")
 }
 
 func (c *LoginCmd) getLoginContext() (lc LoginContext, err error) {

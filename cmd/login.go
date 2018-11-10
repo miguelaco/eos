@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -66,9 +67,13 @@ func newLoginCmd() *cobra.Command {
 	lc.Command = &cobra.Command{
 		Use:   "login",
 		Short: "Perform login to EOS cluster.",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			lc.addr = viper.GetString("addr")
 			lc.user = viper.GetString("user")
+
+			if err := lc.validate(); err != nil {
+				return err
+			}
 
 			cookieJar, _ := cookiejar.New(nil)
 			lc.client = &http.Client{
@@ -84,13 +89,12 @@ func newLoginCmd() *cobra.Command {
 			}
 
 			lc.login()
+			return nil
 		},
 	}
 
 	lc.Command.Flags().StringP("addr", "a", "", "Cluster url")
 	lc.Command.Flags().StringP("user", "u", "admin", "Username you want to use")
-
-	//	lc.Command.MarkFlagRequired("addr")
 
 	viper.BindPFlag("addr", lc.Command.Flags().Lookup("addr"))
 	viper.BindPFlag("user", lc.Command.Flags().Lookup("user"))
@@ -99,7 +103,7 @@ func newLoginCmd() *cobra.Command {
 }
 
 func (c *LoginCmd) login() {
-	fmt.Println("Login to %v as %v", c.addr, c.user)
+	fmt.Println("Login to", c.addr, "as", c.user)
 
 	lc, err := c.getLoginContext()
 	if err != nil {
@@ -123,6 +127,24 @@ func (c *LoginCmd) login() {
 	}
 
 	fmt.Println("Login successful")
+}
+
+func (c *LoginCmd) validate() error {
+	missing := []string{}
+
+	if c.addr == "" {
+		missing = append(missing, "addr")
+	}
+
+	if c.user == "" {
+		missing = append(missing, "user")
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf(`"%s" not set as flags or config`, strings.Join(missing, `", "`))
+	}
+
+	return nil
 }
 
 func (c *LoginCmd) getLoginContext() (lc LoginContext, err error) {

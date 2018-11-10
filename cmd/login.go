@@ -8,9 +8,12 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"regexp"
+	"os"
+	"fmt"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type LogRedirects struct {
@@ -105,6 +108,8 @@ func (c *LoginCmd) login() {
 		return
 	}
 
+	c.password = c.promptPassword("Password: ")
+
 	token, err := c.getAuthToken(lc)
 	if err != nil {
 		log.Fatal(err)
@@ -188,4 +193,12 @@ func (c *LoginCmd) getCookie(name string) (string, error) {
 	}
 
 	return "", errors.New("Cookie " + name + " not found")
+}
+
+func (c *LoginCmd) promptPassword(msg string) string {
+	fmt.Print(msg)
+	defer fmt.Print("\n")
+
+	pass, _ := terminal.ReadPassword(int(os.Stdin.Fd()))
+	return string(pass)
 }

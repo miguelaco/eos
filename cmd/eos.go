@@ -6,7 +6,6 @@ import (
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
@@ -25,8 +24,6 @@ func Execute() {
 	viper.SetConfigFile(home + "/.eos/config.yml")
 
 	viper.ReadInConfig()
-	jww.SetLogThreshold(jww.LevelTrace)
-	jww.SetStdoutThreshold(jww.LevelInfo)
 
 	rootCmd.AddCommand(newLoginCmd())
 	rootCmd.AddCommand(newServerCmd())

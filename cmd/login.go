@@ -2,14 +2,13 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"regexp"
 	"os"
-	"fmt"
+	"regexp"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -30,7 +29,7 @@ func (l LogRedirects) RoundTrip(req *http.Request) (resp *http.Response, err err
 		return
 	}
 
-	log.Println(req.Method, "for", req.URL, "status", resp.StatusCode)
+	fmt.Println(req.Method, "for", req.URL, "status", resp.StatusCode)
 
 	return
 }
@@ -100,11 +99,11 @@ func newLoginCmd() *cobra.Command {
 }
 
 func (c *LoginCmd) login() {
-	log.Printf("Login to %v as %v", c.addr, c.user)
+	fmt.Println("Login to %v as %v", c.addr, c.user)
 
 	lc, err := c.getLoginContext()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 		return
 	}
 
@@ -112,18 +111,18 @@ func (c *LoginCmd) login() {
 
 	token, err := c.getAuthToken(lc)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 		return
 	}
 
 	viper.Set("token", token)
 
 	if err = viper.WriteConfig(); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 		return
 	}
 
-	log.Println("Login successful")
+	fmt.Println("Login successful")
 }
 
 func (c *LoginCmd) getLoginContext() (lc LoginContext, err error) {
@@ -132,7 +131,7 @@ func (c *LoginCmd) getLoginContext() (lc LoginContext, err error) {
 	addr := c.addr + "/login"
 	res, err := c.client.Get(addr)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 		return
 	}
 
@@ -140,7 +139,7 @@ func (c *LoginCmd) getLoginContext() (lc LoginContext, err error) {
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 		return
 	}
 
@@ -177,7 +176,7 @@ func (c *LoginCmd) getAuthToken(lc LoginContext) (string, error) {
 
 	_, err := c.client.PostForm(lc.Action, form)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 
 	return c.getCookie(authCookieName)

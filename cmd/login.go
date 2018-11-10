@@ -89,6 +89,7 @@ func newLoginCmd() *cobra.Command {
 			}
 
 			lc.login()
+
 			return nil
 		},
 	}
@@ -107,23 +108,23 @@ func (c *LoginCmd) login() {
 
 	lc, err := c.getLoginContext()
 	if err != nil {
-		fmt.Println(err)
-		return
+		fmt.Println("Login error:", err)
+		os.Exit(2)
 	}
 
 	c.password = c.promptPassword("Password: ")
 
 	token, err := c.getAuthToken(lc)
 	if err != nil {
-		fmt.Println(err)
-		return
+		fmt.Println("Login error:", err)
+		os.Exit(2)
 	}
 
 	viper.Set("token", token)
 
 	if err = viper.WriteConfig(); err != nil {
-		fmt.Println(err)
-		return
+		fmt.Println("Cannot write config:", err)
+		os.Exit(3)
 	}
 
 	fmt.Println("Login successful")
@@ -153,7 +154,6 @@ func (c *LoginCmd) getLoginContext() (lc LoginContext, err error) {
 	addr := c.addr + "/login"
 	res, err := c.client.Get(addr)
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 
@@ -161,7 +161,6 @@ func (c *LoginCmd) getLoginContext() (lc LoginContext, err error) {
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 
@@ -190,18 +189,20 @@ func (c *LoginCmd) getAction(res *http.Response, formAction string) string {
 	return actionURL.String()
 }
 
-func (c *LoginCmd) getAuthToken(lc LoginContext) (string, error) {
+func (c *LoginCmd) getAuthToken(lc LoginContext) (token string, err error) {
 	form := lc.Form()
 	form.Add("username", c.user)
 	form.Add("password", c.password)
 	form.Add("tenant", "NONE")
 
-	_, err := c.client.PostForm(lc.Action, form)
+	_, err = c.client.PostForm(lc.Action, form)
 	if err != nil {
-		fmt.Println(err)
+		return
 	}
 
-	return c.getCookie(authCookieName)
+	token, err = c.getCookie(authCookieName)
+
+	return
 }
 
 func (c *LoginCmd) getCookie(name string) (string, error) {

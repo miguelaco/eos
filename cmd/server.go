@@ -63,8 +63,15 @@ func (sc *ServerCmd) loginGetHandler(w http.ResponseWriter, r *http.Request) {
 func (sc *ServerCmd) loginPostHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("POST Login Request: %s", r.URL.Path)
 
-	c := http.Cookie{Name: "dcos-acs-auth-cookie", Value: "12345678"}
-	http.SetCookie(w, &c)
+	r.ParseForm()
+	log.Println("Form:", r.Form)
 
-	log.Printf("Cookie: %s", c)
+	user := r.Form.Get("username")
+	password := r.Form.Get("password")
+
+	if user == "admin" && password == "1234" {
+		c := http.Cookie{Name: "dcos-acs-auth-cookie", Value: "12345678"}
+		http.SetCookie(w, &c)
+		log.Printf("Cookie: %s", c)
+	}
 }

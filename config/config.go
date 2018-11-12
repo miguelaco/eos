@@ -43,8 +43,8 @@ func (cfg *Config) Load() error {
 	return nil
 }
 
-func Save() {
-	c.Save()
+func Save() error {
+	return c.Save()
 }
 
 func (cfg *Config) Save() error {

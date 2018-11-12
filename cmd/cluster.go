@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/miguelaco/eos/config"
 	"github.com/spf13/cobra"
@@ -30,7 +31,10 @@ func newClusterAddCmd() (cac *cobra.Command) {
 		Run: func(cmd *cobra.Command, args []string) {
 			config.AddCluster(args[0], config.Cluster{Addr: args[1]})
 			config.AttachCluster(args[0])
-			config.Save()
+			if err := config.Save(); err != nil {
+				fmt.Println("Cannot save configuration:", err)
+				os.Exit(3)
+			}
 		},
 	}
 
@@ -57,7 +61,10 @@ func newClusterAttachCmd() (cac *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			config.AttachCluster(args[0])
-			config.Save()
+			if err := config.Save(); err != nil {
+				fmt.Println("Cannot save configuration:", err)
+				os.Exit(3)
+			}
 		},
 	}
 

@@ -17,7 +17,7 @@ type Cluster struct {
 
 type Config struct {
 	path     string
-	clusters map[string]Cluster
+	clusters map[string]*Cluster
 }
 
 var c *Config
@@ -26,7 +26,7 @@ func init() {
 	home, _ := homedir.Dir()
 	c = &Config{}
 	c.path = home + "/.eos"
-	c.clusters = map[string]Cluster{}
+	c.clusters = map[string]*Cluster{}
 	c.Load()
 }
 
@@ -63,27 +63,27 @@ func (cfg *Config) Save() error {
 	return nil
 }
 
-func AddCluster(name string, cluster Cluster) {
+func AddCluster(name string, cluster *Cluster) {
 	c.AddCluster(name, cluster)
 }
 
-func (cfg *Config) AddCluster(name string, cluster Cluster) {
+func (cfg *Config) AddCluster(name string, cluster *Cluster) {
 	cfg.clusters[name] = cluster
 }
 
-func GetCluster(name string) Cluster {
+func GetCluster(name string) *Cluster {
 	return c.GetCluster(name)
 }
 
-func (cfg *Config) GetCluster(name string) Cluster {
+func (cfg *Config) GetCluster(name string) *Cluster {
 	return cfg.clusters[name]
 }
 
-func ListClusters() map[string]Cluster {
+func ListClusters() map[string]*Cluster {
 	return c.ListClusters()
 }
 
-func (cfg *Config) ListClusters() map[string]Cluster {
+func (cfg *Config) ListClusters() map[string]*Cluster {
 	return cfg.clusters
 }
 
@@ -98,20 +98,19 @@ func (cfg *Config) AttachCluster(name string) {
 			fmt.Println("Attached to cluster", name)
 			cluster.Active = true
 		}
-		cfg.clusters[n] = cluster
 	}
 }
 
-func GetAttachedCluster() Cluster {
+func GetAttachedCluster() *Cluster {
 	return c.GetAttachedCluster()
 }
 
-func (cfg *Config) GetAttachedCluster() Cluster {
+func (cfg *Config) GetAttachedCluster() *Cluster {
 	for _, cluster := range cfg.clusters {
 		if cluster.Active {
 			return cluster
 		}
 	}
 
-	return Cluster{}
+	return &Cluster{}
 }

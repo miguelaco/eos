@@ -39,8 +39,8 @@ type LoginContext struct {
 	Action    string
 	Lt        string
 	Execution string
-	User string
-	Password string
+	User      string
+	Password  string
 }
 
 func (lc *LoginContext) Form() (form url.Values) {
@@ -59,8 +59,8 @@ func (lc *LoginContext) Form() (form url.Values) {
 const authCookieName = "dcos-acs-auth-cookie"
 
 type LoginCmd struct {
-	client   *http.Client
-	cluster config.Cluster
+	client  *http.Client
+	cluster *config.Cluster
 	*cobra.Command
 }
 

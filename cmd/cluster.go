@@ -29,7 +29,7 @@ func newClusterAddCmd() (cac *cobra.Command) {
 		Short: "Add new cluster to config.",
 		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			config.AddCluster(args[0], config.Cluster{Addr: args[1]})
+			config.AddCluster(args[0], &config.Cluster{Addr: args[1]})
 			config.AttachCluster(args[0])
 			if err := config.Save(); err != nil {
 				fmt.Println("Cannot save configuration:", err)

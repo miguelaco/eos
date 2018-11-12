@@ -22,11 +22,13 @@ func Execute() {
 	}
 
 	viper.SetConfigFile(home + "/.eos/config.yml")
-
 	viper.ReadInConfig()
 
-	rootCmd.AddCommand(newLoginCmd())
-	rootCmd.AddCommand(newServerCmd())
+	rootCmd.AddCommand(
+		newLoginCmd(),
+		newServerCmd(),
+		newClusterCmd(),
+	)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

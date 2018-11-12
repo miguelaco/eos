@@ -11,8 +11,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/miguelaco/eos/config"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -39,10 +39,15 @@ type LoginContext struct {
 	Action    string
 	Lt        string
 	Execution string
+	User string
+	Password string
 }
 
 func (lc *LoginContext) Form() (form url.Values) {
 	form = url.Values{}
+	form.Add("username", lc.User)
+	form.Add("password", lc.Password)
+	form.Add("tenant", "NONE")
 	form.Add("lt", lc.Lt)
 	form.Add("_eventId", "submit")
 	form.Add("execution", lc.Execution)
@@ -55,9 +60,7 @@ const authCookieName = "dcos-acs-auth-cookie"
 
 type LoginCmd struct {
 	client   *http.Client
-	addr     string
-	user     string
-	password string
+	cluster config.Cluster
 	*cobra.Command
 }
 
@@ -68,8 +71,6 @@ func newLoginCmd() *cobra.Command {
 		Use:   "login",
 		Short: "Perform login to EOS cluster.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			lc.addr = viper.GetString("addr")
-			lc.user = viper.GetString("user")
 
 			if err := lc.validate(); err != nil {
 				return err
@@ -83,7 +84,7 @@ func newLoginCmd() *cobra.Command {
 					if len(via) >= 10 {
 						return errors.New("stopped after 10 redirects")
 					}
-					req.Header.Set("Referer", lc.addr)
+					req.Header.Set("Referer", lc.cluster.Addr)
 					return nil
 				},
 			}
@@ -94,17 +95,14 @@ func newLoginCmd() *cobra.Command {
 		},
 	}
 
-	lc.Command.Flags().StringP("addr", "a", "", "Cluster url")
-	lc.Command.Flags().StringP("user", "u", "admin", "Username you want to use")
-
-	viper.BindPFlag("addr", lc.Command.Flags().Lookup("addr"))
-	viper.BindPFlag("user", lc.Command.Flags().Lookup("user"))
+	lc.cluster = config.GetAttachedCluster()
+	lc.Command.Flags().StringVarP(&lc.cluster.User, "user", "u", "admin", "Username you want to use")
 
 	return lc.Command
 }
 
 func (c *LoginCmd) login() {
-	fmt.Println("Login to", c.addr, "as", c.user)
+	fmt.Println("Login to", c.cluster.Addr, "as", c.cluster.User)
 
 	lc, err := c.getLoginContext()
 	if err != nil {
@@ -112,17 +110,16 @@ func (c *LoginCmd) login() {
 		os.Exit(2)
 	}
 
-	c.password = c.promptPassword("Password: ")
+	lc.User = c.cluster.User
+	lc.Password = c.promptPassword("Password: ")
 
-	token, err := c.getAuthToken(lc)
+	c.cluster.Token, err = c.getAuthToken(lc)
 	if err != nil {
 		fmt.Println("Login error:", err)
 		os.Exit(2)
 	}
 
-	viper.Set("token", token)
-
-	if err = viper.WriteConfig(); err != nil {
+	if err = config.Save(); err != nil {
 		fmt.Println("Cannot write config:", err)
 		os.Exit(3)
 	}
@@ -133,11 +130,11 @@ func (c *LoginCmd) login() {
 func (c *LoginCmd) validate() error {
 	missing := []string{}
 
-	if c.addr == "" {
+	if c.cluster.Addr == "" {
 		missing = append(missing, "addr")
 	}
 
-	if c.user == "" {
+	if c.cluster.User == "" {
 		missing = append(missing, "user")
 	}
 
@@ -151,7 +148,7 @@ func (c *LoginCmd) validate() error {
 func (c *LoginCmd) getLoginContext() (lc LoginContext, err error) {
 	lc = LoginContext{}
 
-	addr := c.addr + "/login"
+	addr := c.cluster.Addr + "/login"
 	res, err := c.client.Get(addr)
 	if err != nil {
 		return
@@ -191,9 +188,6 @@ func (c *LoginCmd) getAction(res *http.Response, formAction string) string {
 
 func (c *LoginCmd) getAuthToken(lc LoginContext) (token string, err error) {
 	form := lc.Form()
-	form.Add("username", c.user)
-	form.Add("password", c.password)
-	form.Add("tenant", "NONE")
 
 	_, err = c.client.PostForm(lc.Action, form)
 	if err != nil {
@@ -206,7 +200,7 @@ func (c *LoginCmd) getAuthToken(lc LoginContext) (token string, err error) {
 }
 
 func (c *LoginCmd) getCookie(name string) (string, error) {
-	rootUrl, _ := url.Parse(c.addr)
+	rootUrl, _ := url.Parse(c.cluster.Addr)
 
 	for _, cookie := range c.client.Jar.Cookies(rootUrl) {
 		if cookie.Name == name {

@@ -61,6 +61,7 @@ const authCookieName = "dcos-acs-auth-cookie"
 type LoginCmd struct {
 	client  *http.Client
 	cluster *config.Cluster
+	verbose bool
 	*cobra.Command
 }
 
@@ -71,15 +72,19 @@ func newLoginCmd() *cobra.Command {
 		Use:   "login",
 		Short: "Perform login to EOS cluster.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			if err := lc.validate(); err != nil {
 				return err
+			}
+
+			transport := http.DefaultTransport
+			if lc.verbose {
+				transport = LogRedirects{}
 			}
 
 			cookieJar, _ := cookiejar.New(nil)
 			lc.client = &http.Client{
 				Jar:       cookieJar,
-				Transport: LogRedirects{},
+				Transport: transport,
 				CheckRedirect: func(req *http.Request, via []*http.Request) error {
 					if len(via) >= 10 {
 						return errors.New("stopped after 10 redirects")
@@ -97,6 +102,7 @@ func newLoginCmd() *cobra.Command {
 
 	lc.cluster = config.GetAttachedCluster()
 	lc.Command.Flags().StringVarP(&lc.cluster.User, "user", "u", "admin", "Username you want to use")
+	lc.Command.Flags().BoolVarP(&lc.verbose, "verbose", "v", false, "Trace http requests")
 
 	return lc.Command
 }

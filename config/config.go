@@ -68,6 +68,20 @@ func (cfg *Config) AddCluster(name string, cluster *Cluster) {
 	cfg.clusters[name] = cluster
 }
 
+func RemoveCluster(name string) error {
+	return c.RemoveCluster(name)
+}
+
+func (cfg *Config) RemoveCluster(name string) error {
+	if _, ok := cfg.clusters[name]; !ok {
+		return fmt.Errorf("Cluster %s not found", name)
+	}
+
+	delete(cfg.clusters, name)
+
+	return nil
+}
+
 func GetCluster(name string) *Cluster {
 	return c.GetCluster(name)
 }
@@ -84,18 +98,23 @@ func (cfg *Config) ListClusters() map[string]*Cluster {
 	return cfg.clusters
 }
 
-func AttachCluster(name string) {
-	c.AttachCluster(name)
+func AttachCluster(name string) error {
+	return c.AttachCluster(name)
 }
 
-func (cfg *Config) AttachCluster(name string) {
+func (cfg *Config) AttachCluster(name string) error {
+	if _, ok := cfg.clusters[name]; !ok {
+		return fmt.Errorf("Cluster %s not found", name)
+	}
+
 	for n, cluster := range cfg.clusters {
 		cluster.Active = false
 		if n == name {
-			fmt.Println("Attached to cluster", name)
 			cluster.Active = true
 		}
 	}
+
+	return nil
 }
 
 func GetAttachedCluster() *Cluster {

@@ -17,6 +17,7 @@ func newClusterCmd() (cc *cobra.Command) {
 
 	cc.AddCommand(
 		newClusterAddCmd(),
+		newClusterRemoveCmd(),
 		newClusterListCmd(),
 		newClusterAttachCmd(),
 	)
@@ -32,6 +33,30 @@ func newClusterAddCmd() (cac *cobra.Command) {
 		Run: func(cmd *cobra.Command, args []string) {
 			config.AddCluster(args[0], &config.Cluster{Addr: args[1]})
 			config.AttachCluster(args[0])
+
+			fmt.Println("Attached to cluster", args[0])
+
+			if err := config.Save(); err != nil {
+				fmt.Println("Cannot save configuration:", err)
+				os.Exit(3)
+			}
+		},
+	}
+
+	return
+}
+
+func newClusterRemoveCmd() (cac *cobra.Command) {
+	cac = &cobra.Command{
+		Use:   "remove [name]",
+		Short: "Remove cluster from config.",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := config.RemoveCluster(args[0]); err != nil {
+				fmt.Println(err)
+				os.Exit(2)
+			}
+
 			if err := config.Save(); err != nil {
 				fmt.Println("Cannot save configuration:", err)
 				os.Exit(3)
@@ -71,7 +96,13 @@ func newClusterAttachCmd() (cac *cobra.Command) {
 		Short: "Attach to a given cluster.",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			config.AttachCluster(args[0])
+			if err := config.AttachCluster(args[0]); err != nil {
+				fmt.Println(err)
+				os.Exit(2)
+			}
+
+			fmt.Println("Attached to cluster", args[0])
+
 			if err := config.Save(); err != nil {
 				fmt.Println("Cannot save configuration:", err)
 				os.Exit(3)

@@ -53,9 +53,6 @@ func (cfg *Config) Save() error {
 		return err
 	}
 
-	fmt.Println("Saved config")
-	fmt.Println(string(y))
-
 	if err = ioutil.WriteFile(cfg.path, y, 0644); err != nil {
 		return err
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/miguelaco/eos/common"
 	"github.com/miguelaco/eos/config"
 	"github.com/spf13/cobra"
 )
@@ -46,8 +47,18 @@ func newClusterListCmd() (cac *cobra.Command) {
 		Use:   "list",
 		Short: "List configured clusters.",
 		Run: func(cmd *cobra.Command, args []string) {
-			list := config.ListClusters()
-			fmt.Println(list)
+			clusters := config.ListClusters()
+			table := common.NewTable(os.Stdout, []string{"", "NAME", "ADDRESS"})
+
+			for name, cluster := range clusters {
+				attached := ""
+				if cluster.Active {
+					attached = "*"
+				}
+				table.Append([]string{attached, name, cluster.Addr})
+			}
+
+			table.Render()
 		},
 	}
 

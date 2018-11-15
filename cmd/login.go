@@ -5,35 +5,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"regexp"
 	"strings"
 
+	"github.com/miguelaco/eos/common"
 	"github.com/miguelaco/eos/config"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 )
-
-type LogRedirects struct {
-	Transport http.RoundTripper
-}
-
-func (l LogRedirects) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	t := l.Transport
-	if t == nil {
-		t = http.DefaultTransport
-	}
-	resp, err = t.RoundTrip(req)
-	if err != nil {
-		return
-	}
-
-	fmt.Println(req.Method, "for", req.URL, "status", resp.StatusCode)
-
-	return
-}
 
 type LoginContext struct {
 	Action    string
@@ -59,7 +40,7 @@ func (lc *LoginContext) Form() (form url.Values) {
 const authCookieName = "dcos-acs-auth-cookie"
 
 type LoginCmd struct {
-	client  *http.Client
+	client  *common.HttpClient
 	cluster *config.Cluster
 	verbose bool
 	*cobra.Command
@@ -76,23 +57,8 @@ func newLoginCmd() *cobra.Command {
 				return err
 			}
 
-			transport := http.DefaultTransport
-			if lc.verbose {
-				transport = LogRedirects{}
-			}
-
-			cookieJar, _ := cookiejar.New(nil)
-			lc.client = &http.Client{
-				Jar:       cookieJar,
-				Transport: transport,
-				CheckRedirect: func(req *http.Request, via []*http.Request) error {
-					if len(via) >= 10 {
-						return errors.New("stopped after 10 redirects")
-					}
-					req.Header.Set("Referer", lc.cluster.Addr)
-					return nil
-				},
-			}
+			lc.client = common.NewHttpClient(true)
+			lc.client.Verbose(lc.verbose)
 
 			lc.login()
 
@@ -200,21 +166,9 @@ func (c *LoginCmd) getAuthToken(lc LoginContext) (token string, err error) {
 		return
 	}
 
-	token, err = c.getCookie(authCookieName)
+	token, err = c.client.GetCookie(c.cluster.Addr, authCookieName)
 
 	return
-}
-
-func (c *LoginCmd) getCookie(name string) (string, error) {
-	rootUrl, _ := url.Parse(c.cluster.Addr)
-
-	for _, cookie := range c.client.Jar.Cookies(rootUrl) {
-		if cookie.Name == name {
-			return cookie.Value, nil
-		}
-	}
-
-	return "", errors.New("Cookie " + name + " not found")
 }
 
 func (c *LoginCmd) promptPassword(msg string) string {

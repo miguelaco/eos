@@ -128,5 +128,5 @@ func (cfg *Config) GetAttachedCluster() *Cluster {
 		}
 	}
 
-	return &Cluster{}
+    return &Cluster{}
 }

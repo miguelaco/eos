@@ -35,7 +35,7 @@ func newLoginCmd() *cobra.Command {
 	lc.Command = &cobra.Command{
 		Use:   "login",
 		Short: "Perform login to EOS cluster.",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			if err := lc.validate(); err != nil {
 				return err
 			}
@@ -81,6 +81,11 @@ func (c *LoginCmd) login() {
 
 func (c *LoginCmd) validate() error {
 	missing := []string{}
+
+	if !c.cluster.Active {
+		fmt.Println("No attached cluster")
+		os.Exit(2)
+	}
 
 	if c.cluster.Addr == "" {
 		missing = append(missing, "addr")

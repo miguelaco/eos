@@ -16,34 +16,17 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-type LoginContext struct {
-	Action    string
-	Lt        string
-	Execution string
-	User      string
-	Password  string
-}
-
-func (lc *LoginContext) Form() (form url.Values) {
-	form = url.Values{}
-	form.Add("username", lc.User)
-	form.Add("password", lc.Password)
-	form.Add("tenant", "NONE")
-	form.Add("lt", lc.Lt)
-	form.Add("_eventId", "submit")
-	form.Add("execution", lc.Execution)
-	form.Add("submit", "LOGIN")
-
-	return
-}
-
 const authCookieName = "dcos-acs-auth-cookie"
 
 type LoginCmd struct {
-	client  *common.HttpClient
-	cluster *config.Cluster
-	verbose bool
 	*cobra.Command
+	client    *common.HttpClient
+	cluster   *config.Cluster
+	verbose   bool
+	action    string
+	lt        string
+	execution string
+	password  string
 }
 
 func newLoginCmd() *cobra.Command {
@@ -58,7 +41,7 @@ func newLoginCmd() *cobra.Command {
 			}
 
 			lc.client = common.NewHttpClient(true)
-			lc.client.Verbose(lc.verbose)
+			lc.client.SetVerbose(lc.verbose)
 
 			lc.login()
 
@@ -76,22 +59,19 @@ func newLoginCmd() *cobra.Command {
 func (c *LoginCmd) login() {
 	fmt.Println("Login to", c.cluster.Addr, "as", c.cluster.User)
 
-	lc, err := c.getLoginContext()
-	if err != nil {
+	if err := c.getForm(); err != nil {
 		fmt.Println("Login error:", err)
 		os.Exit(2)
 	}
 
-	lc.User = c.cluster.User
-	lc.Password = c.promptPassword("Password: ")
+	c.promptPassword("Password: ")
 
-	c.cluster.Token, err = c.getAuthToken(lc)
-	if err != nil {
+	if err := c.postForm(); err != nil {
 		fmt.Println("Login error:", err)
 		os.Exit(2)
 	}
 
-	if err = config.Save(); err != nil {
+	if err := config.Save(); err != nil {
 		fmt.Println("Cannot write config:", err)
 		os.Exit(3)
 	}
@@ -117,9 +97,7 @@ func (c *LoginCmd) validate() error {
 	return nil
 }
 
-func (c *LoginCmd) getLoginContext() (lc LoginContext, err error) {
-	lc = LoginContext{}
-
+func (c *LoginCmd) getForm() (err error) {
 	addr := c.cluster.Addr + "/login"
 	res, err := c.client.Get(addr)
 	if err != nil {
@@ -140,9 +118,9 @@ func (c *LoginCmd) getLoginContext() (lc LoginContext, err error) {
 		return
 	}
 
-	lc.Action = c.getAction(res, string(info[1]))
-	lc.Lt = string(info[2])
-	lc.Execution = string(info[3])
+	c.action = c.getAction(res, string(info[1]))
+	c.lt = string(info[2])
+	c.execution = string(info[3])
 
 	return
 }
@@ -158,23 +136,36 @@ func (c *LoginCmd) getAction(res *http.Response, formAction string) string {
 	return actionURL.String()
 }
 
-func (c *LoginCmd) getAuthToken(lc LoginContext) (token string, err error) {
-	form := lc.Form()
+func (c *LoginCmd) postForm() (err error) {
+	form := c.form()
 
-	_, err = c.client.PostForm(lc.Action, form)
+	_, err = c.client.PostForm(c.action, form)
 	if err != nil {
 		return
 	}
 
-	token, err = c.client.GetCookie(c.cluster.Addr, authCookieName)
+	c.cluster.Token, err = c.client.GetCookie(c.cluster.Addr, authCookieName)
 
 	return
 }
 
-func (c *LoginCmd) promptPassword(msg string) string {
+func (c *LoginCmd) form() (form url.Values) {
+	form = url.Values{}
+	form.Add("username", c.cluster.User)
+	form.Add("password", c.password)
+	form.Add("tenant", "NONE")
+	form.Add("lt", c.lt)
+	form.Add("_eventId", "submit")
+	form.Add("execution", c.execution)
+	form.Add("submit", "LOGIN")
+
+	return
+}
+
+func (c *LoginCmd) promptPassword(msg string) {
 	fmt.Print(msg)
 	defer fmt.Print("\n")
 
 	pass, _ := terminal.ReadPassword(int(os.Stdin.Fd()))
-	return string(pass)
+	c.password = string(pass)
 }

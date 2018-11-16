@@ -8,11 +8,11 @@ import (
 	"net/url"
 )
 
-type LogRedirects struct {
+type logRedirects struct {
 	Transport http.RoundTripper
 }
 
-func (l LogRedirects) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+func (l logRedirects) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	t := l.Transport
 	if t == nil {
 		t = http.DefaultTransport
@@ -27,25 +27,24 @@ func (l LogRedirects) RoundTrip(req *http.Request) (resp *http.Response, err err
 	return
 }
 
-type CheckRedirectFunc func(req *http.Request, via []*http.Request) error
-
-func checkRedirect(resetReferer bool) CheckRedirectFunc {
-	return func(req *http.Request, via []*http.Request) error {
-		if len(via) >= 10 {
-			return errors.New("stopped after 10 redirects")
-		}
-
-		if resetReferer {
-			req.Header.Set("Referer", "")
-		}
-
-		return nil
+func resetRefererFunc(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
 	}
+
+	req.Header.Set("Referer", "")
+
+	return nil
 }
 
 func NewHttpClient(resetReferer bool) *HttpClient {
 	cookieJar, _ := cookiejar.New(nil)
-	client := &http.Client{Jar: cookieJar, CheckRedirect: checkRedirect(resetReferer)}
+	client := &http.Client{Jar: cookieJar}
+
+	if resetReferer {
+		client.CheckRedirect = resetRefererFunc
+	}
+
 	return &HttpClient{Client: client}
 }
 
@@ -53,10 +52,10 @@ type HttpClient struct {
 	*http.Client
 }
 
-func (c *HttpClient) Verbose(verbose bool) {
+func (c *HttpClient) SetVerbose(verbose bool) {
 	c.Client.Transport = http.DefaultTransport
 	if verbose {
-		c.Client.Transport = LogRedirects{}
+		c.Client.Transport = logRedirects{}
 	}
 }
 

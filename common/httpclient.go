@@ -37,13 +37,9 @@ func resetRefererFunc(req *http.Request, via []*http.Request) error {
 	return nil
 }
 
-func NewHttpClient(resetReferer bool) *HttpClient {
+func NewHttpClient() *HttpClient {
 	cookieJar, _ := cookiejar.New(nil)
 	client := &http.Client{Jar: cookieJar}
-
-	if resetReferer {
-		client.CheckRedirect = resetRefererFunc
-	}
 
 	return &HttpClient{Client: client}
 }
@@ -52,17 +48,24 @@ type HttpClient struct {
 	*http.Client
 }
 
-func (c *HttpClient) SetVerbose(verbose bool) {
-	c.Client.Transport = http.DefaultTransport
+func (c *HttpClient) ResetReferer(resetReferer bool) {
+	c.CheckRedirect = nil
+	if resetReferer {
+		c.CheckRedirect = resetRefererFunc
+	}
+}
+
+func (c *HttpClient) Verbose(verbose bool) {
+	c.Transport = http.DefaultTransport
 	if verbose {
-		c.Client.Transport = logRedirects{}
+		c.Transport = logRedirects{}
 	}
 }
 
 func (c *HttpClient) GetCookie(addr string, name string) (string, error) {
 	rootUrl, _ := url.Parse(addr)
 
-	for _, cookie := range c.Client.Jar.Cookies(rootUrl) {
+	for _, cookie := range c.Jar.Cookies(rootUrl) {
 		if cookie.Name == name {
 			return cookie.Value, nil
 		}

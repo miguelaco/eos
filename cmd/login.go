@@ -40,8 +40,9 @@ func newLoginCmd() *cobra.Command {
 				return err
 			}
 
-			lc.client = common.NewHttpClient(true)
-			lc.client.SetVerbose(lc.verbose)
+			lc.client = common.NewHttpClient()
+			lc.client.ResetReferer(true)
+			lc.client.Verbose(lc.verbose)
 
 			lc.login()
 

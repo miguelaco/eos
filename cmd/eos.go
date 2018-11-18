@@ -28,6 +28,7 @@ func Execute() {
 		newLoginCmd(),
 		newServerCmd(),
 		newClusterCmd(),
+		newNodeCmd(),
 	)
 
 	if err := rootCmd.Execute(); err != nil {

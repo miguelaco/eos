@@ -16,8 +16,6 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-const authCookieName = "dcos-acs-auth-cookie"
-
 type LoginCmd struct {
 	*cobra.Command
 	client    *common.HttpClient
@@ -150,7 +148,7 @@ func (c *LoginCmd) postForm() (err error) {
 		return
 	}
 
-	c.cluster.Token, err = c.client.GetCookie(c.cluster.Addr, authCookieName)
+	c.cluster.Token, err = c.client.GetCookie(c.cluster.Addr, common.AuthCookieName)
 
 	return
 }

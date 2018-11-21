@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	//	"github.com/miguelaco/eos/common"
+	"github.com/miguelaco/eos/common"
 	"github.com/miguelaco/eos/config"
+	"github.com/miguelaco/eos/mesos"
 	"github.com/spf13/cobra"
 )
 
@@ -34,6 +35,19 @@ func newNodeListCmd() (cac *cobra.Command) {
 			}
 
 			fmt.Println("Cluster", cluster.Addr, "node list")
+
+			nodes, err := mesos.Nodes(cluster)
+			if err != nil {
+				fmt.Println("Node list error:", err)
+				os.Exit(3)
+			}
+
+			table := common.NewTable(os.Stdout, []string{"HOSTNAME", "ID", "TYPE"})
+			for _, node := range nodes {
+				table.Append([]string{node.Hostname, node.Id, node.Type})
+			}
+
+			table.Render()
 		},
 	}
 

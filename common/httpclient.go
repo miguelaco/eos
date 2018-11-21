@@ -6,7 +6,10 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"strings"
 )
+
+const AuthCookieName = "dcos-acs-auth-cookie"
 
 type logRedirects struct {
 	Transport http.RoundTripper
@@ -40,36 +43,66 @@ func resetRefererFunc(req *http.Request, via []*http.Request) error {
 func NewHttpClient() *HttpClient {
 	cookieJar, _ := cookiejar.New(nil)
 	client := &http.Client{Jar: cookieJar}
-
-	return &HttpClient{Client: client}
+	return &HttpClient{client: client}
 }
 
 type HttpClient struct {
-	*http.Client
+	client *http.Client
+	Token  string
 }
 
 func (c *HttpClient) ResetReferer(resetReferer bool) {
-	c.CheckRedirect = nil
+	c.client.CheckRedirect = nil
 	if resetReferer {
-		c.CheckRedirect = resetRefererFunc
+		c.client.CheckRedirect = resetRefererFunc
 	}
 }
 
 func (c *HttpClient) Verbose(verbose bool) {
-	c.Transport = http.DefaultTransport
+	c.client.Transport = http.DefaultTransport
 	if verbose {
-		c.Transport = logRedirects{}
+		c.client.Transport = logRedirects{}
 	}
 }
 
-func (c *HttpClient) GetCookie(addr string, name string) (string, error) {
+func (c *HttpClient) GetCookie(addr string, name string) (result string, err error) {
 	rootUrl, _ := url.Parse(addr)
 
-	for _, cookie := range c.Jar.Cookies(rootUrl) {
+	for _, cookie := range c.client.Jar.Cookies(rootUrl) {
 		if cookie.Name == name {
-			return cookie.Value, nil
+			result = cookie.Value
+			return
 		}
 	}
 
-	return "", errors.New("Cookie " + name + " not found")
+	err = errors.New("Cookie " + name + " not found")
+	return
+}
+
+func (c *HttpClient) Get(url string) (resp *http.Response, err error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return
+	}
+
+	if c.Token != "" {
+		req.AddCookie(&http.Cookie{Name: AuthCookieName, Value: c.Token})
+	}
+
+	return c.client.Do(req)
+}
+
+func (c *HttpClient) PostForm(url string, data url.Values) (resp *http.Response, err error) {
+	req, err := http.NewRequest("POST", url, strings.NewReader(data.Encode()))
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	if c.Token != "" {
+		req.AddCookie(&http.Cookie{Name: AuthCookieName, Value: c.Token})
+	}
+
+	return c.client.Do(req)
 }

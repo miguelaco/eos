@@ -3,6 +3,8 @@ package mesos
 import (
 	//	"fmt"
 	"encoding/json"
+	"errors"
+	"net/http"
 
 	"github.com/miguelaco/eos/common"
 	"github.com/miguelaco/eos/config"
@@ -50,6 +52,11 @@ func getStateSummary(cluster *config.Cluster) (result stateSummary, err error) {
 
 	res, err := c.Get(url)
 	if err != nil {
+		return
+	}
+
+	if res.StatusCode != http.StatusOK {
+		err = errors.New(res.Status)
 		return
 	}
 

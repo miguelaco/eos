@@ -38,7 +38,7 @@ func newNodeListCmd() (cac *cobra.Command) {
 
 			nodes, err := mesos.Nodes(cluster)
 			if err != nil {
-				fmt.Println("Node list error:", err)
+				fmt.Println(err)
 				os.Exit(3)
 			}
 

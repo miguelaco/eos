@@ -107,6 +107,10 @@ func (c *Client) getStateSummary() (result stateSummary, err error) {
 	return
 }
 
+func (c *Client) Verbose(verbose bool) {
+	c.httpclient.Verbose(verbose)
+}
+
 func (c *Client) get(path string) (res *http.Response, err error) {
 	url := c.baseURL + path
 	res, err = c.httpclient.Get(url)

@@ -24,8 +24,15 @@ func newNodeCmd() (cc *cobra.Command) {
 	return
 }
 
-func newNodeListCmd() (cac *cobra.Command) {
-	cac = &cobra.Command{
+type NodeListCmd struct {
+	*cobra.Command
+	verbose bool
+}
+
+func newNodeListCmd() *cobra.Command {
+	nlc := NodeListCmd{}
+
+	nlc.Command = &cobra.Command{
 		Use:   "list",
 		Short: "List cluster nodes.",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -38,6 +45,7 @@ func newNodeListCmd() (cac *cobra.Command) {
 			fmt.Println("Cluster", cluster.Addr, "node list")
 
 			consulClient := consul.NewClient(cluster)
+			consulClient.Verbose(nlc.verbose)
 			members, err := consulClient.Members()
 			if err != nil {
 				fmt.Println(err)
@@ -45,6 +53,7 @@ func newNodeListCmd() (cac *cobra.Command) {
 			}
 
 			mesosClient := mesos.NewClient(cluster)
+			mesosClient.Verbose(nlc.verbose)
 			leader, err := mesosClient.Leader()
 			if err != nil {
 				fmt.Println(err)
@@ -64,5 +73,7 @@ func newNodeListCmd() (cac *cobra.Command) {
 		},
 	}
 
-	return
+	nlc.Command.Flags().BoolVarP(&nlc.verbose, "verbose", "v", false, "Trace http requests")
+
+	return nlc.Command
 }

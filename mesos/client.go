@@ -53,6 +53,16 @@ func (c *Client) Nodes() (result map[string]Node, err error) {
 	return
 }
 
+func (c *Client) Leader() (result Node, err error) {
+	state, err := c.getStateSummary()
+	if err != nil {
+		return
+	}
+
+	result = Node{Id: state.Id, Hostname: state.Hostname, Type: NodeTypeLeader}
+	return
+}
+
 type masterState struct {
 	Hostname string `json:hostname`
 	Id       string `json:id`
@@ -71,6 +81,28 @@ func (c *Client) getMasterState() (result masterState, err error) {
 	defer res.Body.Close()
 
 	result = masterState{}
+	json.NewDecoder(res.Body).Decode(&result)
+	return
+}
+
+type stateSummary struct {
+	Hostname string `json:hostname`
+	Id       string `json:id`
+	Slaves   []struct {
+		Id       string `json:id`
+		Hostname string `json:hostname`
+	} `json:slaves`
+}
+
+func (c *Client) getStateSummary() (result stateSummary, err error) {
+	res, err := c.get("/master/state-summary")
+	if err != nil {
+		return
+	}
+
+	defer res.Body.Close()
+
+	result = stateSummary{}
 	json.NewDecoder(res.Body).Decode(&result)
 	return
 }

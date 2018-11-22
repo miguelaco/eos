@@ -7,6 +7,7 @@ import (
 	"github.com/miguelaco/eos/common"
 	"github.com/miguelaco/eos/config"
 	"github.com/miguelaco/eos/consul"
+	"github.com/miguelaco/eos/mesos"
 	"github.com/spf13/cobra"
 )
 
@@ -43,9 +44,20 @@ func newNodeListCmd() (cac *cobra.Command) {
 				os.Exit(3)
 			}
 
-			table := common.NewTable(os.Stdout, []string{"HOSTNAME", "IP", "STATUS", "TYPE"})
+			mesosClient := mesos.NewClient(cluster)
+			leader, err := mesosClient.Leader()
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(3)
+			}
+
+			table := common.NewTable(os.Stdout, []string{"", "HOSTNAME", "IP", "STATUS", "TYPE"})
 			for _, member := range members {
-				table.Append([]string{member.Name, member.Addr, member.StatusText(), member.Type()})
+				if member.Addr == leader.Hostname {
+					table.Append([]string{"*", member.Name, member.Addr, member.StatusText(), member.Type()})
+				} else {
+					table.Append([]string{"", member.Name, member.Addr, member.StatusText(), member.Type()})
+				}
 			}
 
 			table.Render()

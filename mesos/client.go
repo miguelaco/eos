@@ -1,7 +1,6 @@
 package mesos
 
 import (
-	//	"fmt"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -16,6 +15,10 @@ const (
 	NodeTypeLeader = "master (leader)"
 )
 
+const (
+	basePath = "/mesos"
+)
+
 type Node struct {
 	Id       string `json:id`
 	Hostname string `json:hostname`
@@ -24,24 +27,27 @@ type Node struct {
 
 type Client struct {
 	httpclient *common.HttpClient
-	cluster    *config.Cluster
+	baseURL    string
 }
 
 func NewClient(cluster *config.Cluster) *Client {
 	httpclient := common.NewHttpClient()
 	httpclient.Token = cluster.Token
-	return &Client{httpclient: httpclient, cluster: cluster}
+
+	baseURL := cluster.Addr + basePath
+	return &Client{httpclient: httpclient, baseURL: baseURL}
 }
 
-func (c *Client) Nodes() (result []Node, err error) {
+func (c *Client) Nodes() (result map[string]Node, err error) {
 	state, err := c.getMasterState()
 	if err != nil {
 		return
 	}
 
-	result = append(result, Node{Id: state.Id, Hostname: state.Hostname, Type: NodeTypeLeader})
+	result = map[string]Node{}
+	result[state.Hostname] = Node{Id: state.Id, Hostname: state.Hostname, Type: NodeTypeLeader}
 	for _, slave := range state.Slaves {
-		result = append(result, Node{Id: slave.Id, Hostname: slave.Hostname, Type: NodeTypeSlave})
+		result[slave.Hostname] = Node{Id: slave.Id, Hostname: slave.Hostname, Type: NodeTypeSlave}
 	}
 
 	return
@@ -70,8 +76,7 @@ func (c *Client) getMasterState() (result masterState, err error) {
 }
 
 func (c *Client) get(path string) (res *http.Response, err error) {
-	url := c.cluster.Addr + "/mesos" + path
-
+	url := c.baseURL + path
 	res, err = c.httpclient.Get(url)
 	if err != nil {
 		return

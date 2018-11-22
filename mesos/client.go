@@ -22,17 +22,19 @@ type Node struct {
 	Type     string
 }
 
-type stateSummary struct {
-	Hostname string `json:hostname`
-	Id       string `json:id`
-	Slaves   []struct {
-		Id       string `json:id`
-		Hostname string `json:hostname`
-	} `json:slaves`
+type Client struct {
+	httpclient *common.HttpClient
+	cluster    *config.Cluster
 }
 
-func Nodes(cluster *config.Cluster) (result []Node, err error) {
-	state, err := getStateSummary(cluster)
+func NewClient(cluster *config.Cluster) *Client {
+	httpclient := common.NewHttpClient()
+	httpclient.Token = cluster.Token
+	return &Client{httpclient: httpclient, cluster: cluster}
+}
+
+func (c *Client) Nodes() (result []Node, err error) {
+	state, err := c.getMasterState()
 	if err != nil {
 		return
 	}
@@ -45,12 +47,32 @@ func Nodes(cluster *config.Cluster) (result []Node, err error) {
 	return
 }
 
-func getStateSummary(cluster *config.Cluster) (result stateSummary, err error) {
-	url := cluster.Addr + "/mesos/master/state"
-	c := common.NewHttpClient()
-	c.Token = cluster.Token
+type masterState struct {
+	Hostname string `json:hostname`
+	Id       string `json:id`
+	Slaves   []struct {
+		Id       string `json:id`
+		Hostname string `json:hostname`
+	} `json:slaves`
+}
 
-	res, err := c.Get(url)
+func (c *Client) getMasterState() (result masterState, err error) {
+	res, err := c.get("/master/state")
+	if err != nil {
+		return
+	}
+
+	defer res.Body.Close()
+
+	result = masterState{}
+	json.NewDecoder(res.Body).Decode(&result)
+	return
+}
+
+func (c *Client) get(path string) (res *http.Response, err error) {
+	url := c.cluster.Addr + "/mesos" + path
+
+	res, err = c.httpclient.Get(url)
 	if err != nil {
 		return
 	}
@@ -60,9 +82,5 @@ func getStateSummary(cluster *config.Cluster) (result stateSummary, err error) {
 		return
 	}
 
-	defer res.Body.Close()
-
-	result = stateSummary{}
-	json.NewDecoder(res.Body).Decode(&result)
 	return
 }

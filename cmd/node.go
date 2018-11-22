@@ -36,7 +36,9 @@ func newNodeListCmd() (cac *cobra.Command) {
 
 			fmt.Println("Cluster", cluster.Addr, "node list")
 
-			nodes, err := mesos.Nodes(cluster)
+			client := mesos.NewClient(cluster)
+
+			nodes, err := client.Nodes()
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(3)
